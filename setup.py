@@ -79,6 +79,7 @@ setup(
         'setuptools',
         'xarray',
         'boto3',
+        'SharedArray',
     ],
     extras_require=extras_require,
     tests_require=tests_require,
