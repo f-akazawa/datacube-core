@@ -78,6 +78,7 @@ setup(
         'dask[array]',
         'setuptools',
         'xarray',
+        'boto3',
     ],
     extras_require=extras_require,
     tests_require=tests_require,
