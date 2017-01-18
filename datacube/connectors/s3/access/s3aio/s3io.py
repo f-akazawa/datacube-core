@@ -287,7 +287,7 @@ class S3IO:
         shared_array = sa.attach(array_name)
         shared_array[start:end] = d
 
-    def get_bytes_range_mp(self, s3_bucket, s3_object, s3_start, s3_end, block_size, new_session=False):
+    def get_byte_range_mp(self, s3_bucket, s3_object, s3_start, s3_end, block_size, new_session=False):
         if new_session is True:
             s3 = boto3.session.Session().resource('s3')
         else:

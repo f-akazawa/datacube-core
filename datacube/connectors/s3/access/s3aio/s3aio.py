@@ -66,8 +66,10 @@ class S3AIO(object):
 
         # Todo:
         #   - parallelise reads and writes
-        #     - 1. get memory rows in parallel and merge
-        #     - 2. get bounding block in parallel and subset.
+        #     - option 1. get memory rows in parallel and merge
+        #     - option 2. smarter byte range subsets depending on:
+        #       - data size
+        #       - data contiguity
 
         cdim = self.cdims(array_slice, shape)
 
@@ -105,20 +107,53 @@ class S3AIO(object):
 
         return result
 
-    # def get_slice_by_bbox(self, slice, shape, dtype, s3_bucket, s3_key):
-    #     # get bbox range from (first_slice.start, last_slice.stop)
-    #     # pull out from S3, data is offset by first_slice.start
-    #     # use get_slice2 to index and retrieve data.
+    def get_slice_by_bbox(self, array_slice, shape, dtype, s3_bucket, s3_key):  # pylint: disable=too-many-locals
+        # Todo:
+        #   - parallelise reads and writes
+        #     - option 1. use get_byte_range_mp
+        #     - option 2. smarter byte range subsets depending on:
+        #       - data size
+        #       - data contiguity
 
-    #     s3_start = [s.start for s in slice]
-    #     s3_stop = [s.stop for s in slice]
+        item_size = np.dtype(dtype).itemsize
+        s3_begin = (np.ravel_multi_index(tuple([s.start for s in array_slice]), shape)) * item_size
+        s3_end = (np.ravel_multi_index(tuple([s.stop-1 for s in array_slice]), shape)+1) * item_size
 
-    #     d = self.s3io.get_byte_range_mp(s3_bucket, s3_key, s3_start, s3_end)
+        d = self.s3io.get_byte_range(s3_bucket, s3_key, s3_begin, s3_end)
 
-    #     # calculate offsets using s3_start
-    #     # call get_slice to get data from numpy array
-    #     # build result array
-    #     # return
+        cdim = self.cdims(array_slice, shape)
+
+        try:
+            end = cdim[::-1].index(False)+1
+        except ValueError:
+            end = len(shape)
+
+        start = len(shape) - end
+
+        outer = array_slice[:-end]
+        outer_ranges = [range(s.start, s.stop) for s in outer]
+        outer_cells = list(itertools.product(*outer_ranges))
+        blocks = list(zip(outer_cells, itertools.repeat(array_slice[start:])))
+        item_size = np.dtype(dtype).itemsize
+
+        results = []
+        for cell, sub_range in blocks:
+            s3_start = (np.ravel_multi_index(cell+tuple([s.start for s in sub_range]), shape)) * item_size
+            s3_end = (np.ravel_multi_index(cell+tuple([s.stop-1 for s in sub_range]), shape)+1) * item_size
+            data = d[s3_start-s3_begin:s3_end-s3_begin]
+            results.append((cell, sub_range, data))
+
+        result = np.empty([s.stop - s.start for s in array_slice], dtype=dtype)
+        offset = [s.start for s in array_slice]
+
+        for cell, sub_range, data in results:
+            t = [slice(x.start-o, x.stop-o) if isinstance(x, slice) else x-o for x, o in
+                 zip(cell+tuple(sub_range), offset)]
+            if data.dtype != dtype:
+                data = np.frombuffer(data, dtype=dtype, count=-1, offset=0)
+            result[t] = data.reshape([s.stop - s.start for s in sub_range])
+
+        return result
 
     # def shape_to_idx(self, slices):
     #     dims_but_last = slices[:-1]
