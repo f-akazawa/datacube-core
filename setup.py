@@ -77,6 +77,7 @@ setup(
         'gdal>=1.9',
         'dask[array]',
         'xarray',
+        'boto3',
     ],
     extras_require=extras_require,
     tests_require=tests_require,
