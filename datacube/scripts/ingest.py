@@ -47,8 +47,7 @@ def morph_dataset_type(source_type, config):
     output_type.definition['managed'] = True
     output_type.definition['description'] = config['description']
     output_type.definition['storage'] = config['storage']
-    # TODO: Is it fine to assume the format is dictated by the driver?
-    output_type.metadata_doc['format'] = {'name': config['storage']['driver']}
+    output_type.metadata_doc['format'] = {'name': 'NetCDF'}
 
     def merge_measurement(measurement, spec):
         measurement.update({k: spec.get(k, measurement[k]) for k in ('name', 'nodata', 'dtype')})
@@ -117,7 +116,6 @@ def get_namemap(config):
 
 def make_output_type(index, config):
     source_type = index.products.get_by_name(config['source_type'])
-
     if not source_type:
         click.echo("Source DatasetType %s does not exist" % config['source_type'])
         click.get_current_context().exit(1)
@@ -125,9 +123,6 @@ def make_output_type(index, config):
     output_type = morph_dataset_type(source_type, config)
     _LOG.info('Created DatasetType %s', output_type.name)
     output_type = index.products.add(output_type)
-
-    _LOG.debug('Source type (%s): %s', config['source_type'], source_type.metadata_doc)
-    _LOG.debug('Output type (%s): %s', config['output_type'], output_type.metadata_doc)
 
     return source_type, output_type
 
@@ -207,13 +202,7 @@ def ingest_work(config, source_type, output_type, tile, tile_index):
     datasets = xr_apply(tile.sources, _make_dataset, dtype='O')  # Store in Dataarray to associate Time -> Dataset
     nudata['dataset'] = datasets_to_doc(datasets)
 
-    driver = output_type.definition['storage']['driver']
-    if driver.lower() == 'netcdf cf':
-        write_dataset_to_netcdf(nudata, file_path, global_attributes, variable_params)
-    elif driver.lower() == 's3':
-        _LOG.warning('s3 storage not integrated yet!')
-    else:
-        raise ValueError('Unknown driver: %s' % driver)
+    write_dataset_to_netcdf(nudata, file_path, global_attributes, variable_params)
     _LOG.info('Finished task %s', tile_index)
 
     return datasets
@@ -299,10 +288,6 @@ def _validate_year(ctx, param, value):
 @ui.executor_cli_options
 @ui.pass_index(app_name='agdc-ingest')
 def ingest_cmd(index, config_file, year, queue_size, save_tasks, load_tasks, dry_run, executor):
-    _LOG.debug('In ingest_cmd:\n - index=%s\n - config_file=%s\n - year=%s\n - queue_size=%s\n' \
-               +'- save_tasks=%s\n - load_tasks=%s\n - dry_run=%s\n - executor=%s',
-               index, config_file, year, queue_size, save_tasks, load_tasks, dry_run, executor)
-
     if config_file:
         config = load_config_from_file(index, config_file)
         source_type, output_type = make_output_type(index, config)
