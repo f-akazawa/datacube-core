@@ -72,6 +72,46 @@ DATASET = Table(
     Column('added_by', _sql.PGNAME, server_default=func.current_user(), nullable=False),
 )
 
+
+# Required to store:
+#     dataset_ref
+#     dataset key (different from dataset_ref) given by s3_hash.py
+#         contingency plan.
+#     attribute (bands)
+#         must match dataset.metadata::image::bands
+#         required because we are putting 1 band per s3 object. NetCDF contains all bands.
+#     macro shape of s3 objects e.g (2, 2)
+#     shape e.g. (20, 1024, 1024)
+#     numpy dtype e.g. (int16)
+#     regular index (min, max, step)
+#         spatial
+#         temporal
+#     irregular index (enumerated list)
+#         spatial
+#         temporal
+#     per s3 object
+#         bucket (s3 bucket)
+#         key (s3 key) given by s3_hash.py
+#         compression scheme - None
+#         micro shape e.g. (20, 512, 512)
+#         regular index
+#             spatial
+#             temporal
+#         irregular index
+#             spatial
+#             temporal
+
+S3_SUB_DATASET = Table(
+    "s3_sub_dataset", _core.METADATA,
+    # Object 
+    Column('id', Integer, primary_key=True, autoincrement=True),
+    Column('bucket', String, nullable=False),
+    Column('key', String, nullable=False),
+    Column('compression_scheme', String, nullable=False),
+    Column('shape', _sql.ARRAY(Integer), nullable=False),
+    Column('micro_shape', _sql.ARRAY(Integer), nullable=False)
+)
+
 DATASET_LOCATION = Table(
     'dataset_location', _core.METADATA,
     Column('id', Integer, primary_key=True, autoincrement=True),
