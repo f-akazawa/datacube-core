@@ -93,13 +93,19 @@ DATASET = Table(
 #         bucket (s3 bucket)
 #         key (s3 key) given by s3_hash.py
 #         compression scheme - None
+#         shape: the shape of the parent block
 #         micro shape e.g. (20, 512, 512)
-#         regular index
+#         chunksize? leave for later
+#         dimensions - 
+#         valid times[]
+#         
+#         regular index - min, max and step size for each dim
 #             spatial
 #             temporal
-#         irregular index
+#         irregular index 
 #             spatial
 #             temporal
+#         Array of contained timestamps
 
 S3_SUB_DATASET = Table(
     "s3_sub_dataset", _core.METADATA,
@@ -109,7 +115,7 @@ S3_SUB_DATASET = Table(
     Column('key', String, nullable=False),
     Column('compression_scheme', String, nullable=False),
     Column('shape', _sql.ARRAY(Integer), nullable=False),
-    Column('micro_shape', _sql.ARRAY(Integer), nullable=False)
+    Column('geo_extents', _sql.ARRAY(Integer), nullable=False)
 )
 
 DATASET_LOCATION = Table(
