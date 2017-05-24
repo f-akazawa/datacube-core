@@ -36,7 +36,7 @@ jobs:
             export PATH="$HOME/miniconda/bin:$PATH"
             conda env create -q -n agdc --file .travis/environment_py35.yaml
             source activate agdc
-            conda install -q sphinx sphinx_rtd_theme mock click # Stuff for docs
+            conda install -q sphinx==1.5.6 sphinx_rtd_theme mock click # Stuff for docs
             pip install . --no-deps --upgrade
 
       # - restore_cache:
