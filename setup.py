@@ -10,7 +10,7 @@ extras_require = {
     'interactive': ['matplotlib', 'fiona'],
     'distributed': ['distributed', 'dask[distributed]'],
     'analytics': ['scipy', 'pyparsing', 'numexpr'],
-    'doc': ['Sphinx', 'setuptools'],
+    'doc': ['Sphinx==1.5.6', 'setuptools'],
     'replicas': ['paramiko', 'sshtunnel', 'tqdm'],
     'test': tests_require,
 }
